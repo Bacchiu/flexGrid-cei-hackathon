@@ -1,0 +1,81 @@
+# Stack demo completo su un laptop: Mosquitto + InfluxDB + Grafana + i 2 servizi.
+#   docker compose up --build            # sede singola (azienda-demo)
+#   docker compose --profile multi up    # aggiunge una seconda sede (scalabilità)
+#
+# Pannello di controllo (pulsante Terna):  http://localhost:8000
+# Grafana:                                 http://localhost:3000  (admin/admin)
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  influxdb:
+    image: influxdb:2.7
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin12345
+      DOCKER_INFLUXDB_INIT_ORG: cei
+      DOCKER_INFLUXDB_INIT_BUCKET: energy
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: dev-token
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - influxdb
+
+  aggregator:
+    build: ./cloud
+    ports:
+      - "8001:8000"
+    environment:
+      MQTT_HOST: mosquitto
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: dev-token
+      INFLUX_ORG: cei
+      INFLUX_BUCKET: energy
+    depends_on:
+      - mosquitto
+      - influxdb
+
+  edge:
+    build: ./edge
+    environment:
+      SITE_ID: azienda-demo
+      MQTT_HOST: mosquitto
+    depends_on:
+      - mosquitto
+
+  # Seconda sede — attiva con:  docker compose --profile multi up
+  edge2:
+    build: ./edge
+    profiles: ["multi"]
+    environment:
+      SITE_ID: sede-2
+      MQTT_HOST: mosquitto
+      EV_ACTIVE: "6"
+      HVAC_BASE_KW: "80"
+      CRITICAL_KW: "150"
+      PV_PEAK_KW: "150"
+    depends_on:
+      - mosquitto
+
+volumes:
+  influxdb-data:

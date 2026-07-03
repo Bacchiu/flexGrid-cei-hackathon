@@ -1,0 +1,26 @@
+# Seconda sede — la "storia di scalabilità" OpenSlice: aggiungere una sede = istanziare
+# un nuovo Deployment (in produzione: un service order sul catalogo OpenSlice).
+#   kubectl apply -f deploy/k8s/51-edge-sede2.yaml
+# NON incluso nel kustomization di default: si aggiunge a demo avviata.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-sede-2
+  namespace: edge
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: edge, site: sede-2 } }
+  template:
+    metadata: { labels: { app: edge, site: sede-2 } }
+    spec:
+      containers:
+        - name: edge
+          image: edge-controller:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: SITE_ID, value: sede-2 }
+            - { name: MQTT_HOST, value: mosquitto.cloud.svc.cluster.local }
+            - { name: EV_ACTIVE, value: "6" }
+            - { name: HVAC_BASE_KW, value: "80" }
+            - { name: CRITICAL_KW, value: "150" }
+            - { name: PV_PEAK_KW, value: "150" }

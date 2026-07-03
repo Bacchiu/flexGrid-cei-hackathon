@@ -1,0 +1,41 @@
+# InfluxDB (time-series) — namespace cloud. Storage effimero (demo).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: influxdb } }
+  template:
+    metadata: { labels: { app: influxdb } }
+    spec:
+      containers:
+        - name: influxdb
+          image: {{ .Values.influx.image }}
+          ports: [{ containerPort: 8086 }]
+          env:
+            - { name: DOCKER_INFLUXDB_INIT_MODE, value: setup }
+            - { name: DOCKER_INFLUXDB_INIT_USERNAME, value: {{ .Values.influx.adminUser | quote }} }
+            - { name: DOCKER_INFLUXDB_INIT_PASSWORD, value: {{ .Values.influx.adminPassword | quote }} }
+            - { name: DOCKER_INFLUXDB_INIT_ORG, value: {{ .Values.influx.org | quote }} }
+            - { name: DOCKER_INFLUXDB_INIT_BUCKET, value: {{ .Values.influx.bucket | quote }} }
+            - { name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN, value: {{ .Values.influx.token | quote }} }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/influxdb2 }
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+spec:
+  selector: { app: influxdb }
+  ports: [{ port: 8086, targetPort: 8086 }]

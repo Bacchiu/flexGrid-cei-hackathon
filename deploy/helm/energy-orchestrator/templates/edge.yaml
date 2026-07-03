@@ -1,0 +1,32 @@
+# Edge Controller + Asset Simulator — namespace edge. Una sede = un Deployment.
+# In loop su .Values.sites: aggiungere una sede = aggiungere un item ai values
+# (o un nuovo service order OpenSlice che instanzia questo chart con un'altra sede).
+{{- $root := . -}}
+{{- range .Values.sites }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-{{ .name }}
+  namespace: {{ $root.Values.namespaces.edge }}
+  labels:
+    {{- include "eo.labels" $root | nindent 4 }}
+    site: {{ .name }}
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: edge, site: {{ .name }} } }
+  template:
+    metadata: { labels: { app: edge, site: {{ .name }} } }
+    spec:
+      containers:
+        - name: edge
+          image: "{{ $root.Values.images.edge.repository }}:{{ $root.Values.images.edge.tag }}"
+          imagePullPolicy: {{ $root.Values.images.edge.pullPolicy }}
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: SITE_ID, value: {{ .name | quote }} }
+            - { name: MQTT_HOST, value: {{ include "eo.mqttHost" $root | quote }} }
+            {{- range $k, $v := .env }}
+            - { name: {{ $k | quote }}, value: {{ $v | quote }} }
+            {{- end }}
+{{- end }}

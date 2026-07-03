@@ -1,0 +1,106 @@
+# Grafana — namespace cloud. Datasource + dashboard provisionati da ConfigMap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+data:
+  influxdb.yml: |
+    apiVersion: 1
+    datasources:
+      - name: InfluxDB
+        uid: influxdb
+        type: influxdb
+        access: proxy
+        url: http://influxdb.{{ .Values.namespaces.cloud }}:8086
+        isDefault: true
+        jsonData:
+          version: Flux
+          organization: {{ .Values.influx.org }}
+          defaultBucket: {{ .Values.influx.bucket }}
+          tlsSkipVerify: true
+        secureJsonData:
+          token: {{ .Values.influx.token }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+data:
+  dashboards.yml: |
+    apiVersion: 1
+    providers:
+      - name: CEI Dashboards
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+data:
+  energy.json: |-
+{{ .Files.Get "files/energy.json" | indent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: grafana } }
+  template:
+    metadata: { labels: { app: grafana } }
+    spec:
+      containers:
+        - name: grafana
+          image: {{ .Values.grafana.image }}
+          ports: [{ containerPort: 3000 }]
+          env:
+            - { name: GF_SECURITY_ADMIN_PASSWORD, value: {{ .Values.grafana.adminPassword | quote }} }
+            - { name: GF_AUTH_ANONYMOUS_ENABLED, value: "true" }
+            - { name: GF_AUTH_ANONYMOUS_ORG_ROLE, value: Viewer }
+          volumeMounts:
+            - { name: datasources, mountPath: /etc/grafana/provisioning/datasources }
+            - { name: dashboard-provider, mountPath: /etc/grafana/provisioning/dashboards }
+            - { name: dashboards, mountPath: /var/lib/grafana/dashboards }
+      volumes:
+        - name: datasources
+          configMap: { name: grafana-datasources }
+        - name: dashboard-provider
+          configMap: { name: grafana-dashboard-provider }
+        - name: dashboards
+          configMap: { name: grafana-dashboards }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.grafana.service.type }}
+  selector: { app: grafana }
+  ports:
+    - port: 3000
+      targetPort: 3000
+      {{- if eq .Values.grafana.service.type "NodePort" }}
+      nodePort: {{ .Values.grafana.service.nodePort }}
+      {{- end }}

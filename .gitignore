@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# config locale
+.env
+*.local
+
+# OpenSlice: clone ETSI da 1.2G rigenerabile con openslice/deploy.sh
+openslice/
+
+# OS
+.DS_Store

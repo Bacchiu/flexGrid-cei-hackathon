@@ -1,0 +1,13 @@
+apiVersion: v2
+name: energy-orchestrator
+description: Smart Enterprise Energy Orchestrator — Virtual Power Plant (FV+EV+HVAC) su segnale Terna, orchestrato da OpenSlice sul continuum edge/cloud.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - energy
+  - demand-response
+  - openslice
+  - cloud-edge
+maintainers:
+  - name: CEI OS Hackathon — Track 2 (COP-PILOT)

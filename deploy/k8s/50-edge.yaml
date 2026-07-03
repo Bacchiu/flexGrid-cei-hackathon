@@ -1,0 +1,21 @@
+# Edge Controller + Asset Simulator — namespace edge. Una sede = un Deployment.
+# Raggiunge il broker nel namespace cloud via DNS cross-namespace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-azienda-demo
+  namespace: edge
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: edge, site: azienda-demo } }
+  template:
+    metadata: { labels: { app: edge, site: azienda-demo } }
+    spec:
+      containers:
+        - name: edge
+          image: edge-controller:dev
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: SITE_ID, value: azienda-demo }
+            - { name: MQTT_HOST, value: mosquitto.cloud.svc.cluster.local }

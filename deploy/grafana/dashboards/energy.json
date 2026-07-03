@@ -1,0 +1,142 @@
+{
+  "id": null,
+  "uid": "cei-energy",
+  "title": "Smart Enterprise Energy Orchestrator",
+  "description": "Demand response on a Terna signal: the company cuts its grid draw by modulating flexible loads (EV, HVAC) and earns the 80/20 revenue split. Trigger an event from the control panel at http://localhost:8000 and watch the grid draw fall while the revenue rises.",
+  "tags": ["cei", "openslice", "energy"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Current grid draw",
+      "description": "Power the company is drawing from the national grid right now (sum of all sites). About 316 kW at rest; it drops during a Terna event.",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "kwatt", "decimals": 0, "noValue": "0", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "textMode": "value_and_name" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\" and r._field == \"grid_kw\")\n  |> last()\n  |> group()\n  |> sum()"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Flexibility delivered to Terna",
+      "description": "Grid draw reduction actually delivered during the active event (baseline draw minus current draw). Shows 0 when no event is active.",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "kwatt", "decimals": 0, "noValue": "0", "color": { "mode": "fixed", "fixedColor": "orange" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "textMode": "value_and_name" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"economics\" and r._field == \"delivered_kw\")\n  |> group()\n  |> last()"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Company revenue (80%)",
+      "description": "Share of revenue that goes to the company for the delivered flexibility. Grows in real time during the event.",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "currencyEUR", "decimals": 2, "noValue": "0", "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"economics\" and r._field == \"company_eur\")\n  |> group()\n  |> last()"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Platform revenue (20%)",
+      "description": "Share of revenue kept by the platform (orchestration / SaaS fee).",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "currencyEUR", "decimals": 2, "noValue": "0", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"economics\" and r._field == \"platform_eur\")\n  |> group()\n  |> last()"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Grid draw over time",
+      "description": "The key curve of the demo: it collapses when Terna asks for flexibility and the system modulates the loads, then recovers when the event is released.",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatt",
+          "min": 0,
+          "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 3, "showPoints": "never" },
+          "color": { "mode": "fixed", "fixedColor": "red" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "min", "max"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\" and r._field == \"grid_kw\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field: \"Grid draw\"}))\n  |> group(columns: [\"_field\"])\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Power by asset (what gets modulated)",
+      "description": "During the event: EV chargers and HVAC (flexible) go down; critical loads stay flat; solar PV stays at maximum self consumption.",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 14 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatt",
+          "min": 0,
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "showPoints": "never" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Solar PV (generation)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } } ] },
+          { "matcher": { "id": "byName", "options": "EV chargers (flexible)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } } ] },
+          { "matcher": { "id": "byName", "options": "HVAC (flexible)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } } ] },
+          { "matcher": { "id": "byName", "options": "Critical loads (untouchable)" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "min", "max"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry\" and (r._field == \"pv_kw\" or r._field == \"ev_kw\" or r._field == \"hvac_kw\" or r._field == \"critical_kw\"))\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({r with _field:\n      if r._field == \"pv_kw\" then \"Solar PV (generation)\"\n      else if r._field == \"ev_kw\" then \"EV chargers (flexible)\"\n      else if r._field == \"hvac_kw\" then \"HVAC (flexible)\"\n      else \"Critical loads (untouchable)\"}))\n  |> group(columns: [\"_field\"])\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])"
+        }
+      ]
+    }
+  ]
+}

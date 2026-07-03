@@ -1,0 +1,33 @@
+# Aggregator / Dispatch Engine — namespace cloud. Immagine locale (kind/minikube load).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregator
+  namespace: cloud
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: aggregator } }
+  template:
+    metadata: { labels: { app: aggregator } }
+    spec:
+      containers:
+        - name: aggregator
+          image: aggregator:dev
+          imagePullPolicy: IfNotPresent
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: MQTT_HOST, value: mosquitto }
+            - { name: INFLUX_URL, value: http://influxdb:8086 }
+            - { name: INFLUX_TOKEN, value: dev-token }
+            - { name: INFLUX_ORG, value: cei }
+            - { name: INFLUX_BUCKET, value: energy }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregator
+  namespace: cloud
+spec:
+  type: NodePort
+  selector: { app: aggregator }
+  ports: [{ port: 8000, targetPort: 8000, nodePort: 30800 }]

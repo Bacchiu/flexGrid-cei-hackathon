@@ -1,0 +1,37 @@
+# InfluxDB (time-series) — namespace cloud. Storage effimero: demo, nessuna persistenza.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+  namespace: cloud
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: influxdb } }
+  template:
+    metadata: { labels: { app: influxdb } }
+    spec:
+      containers:
+        - name: influxdb
+          image: influxdb:2.7
+          ports: [{ containerPort: 8086 }]
+          env:
+            - { name: DOCKER_INFLUXDB_INIT_MODE, value: setup }
+            - { name: DOCKER_INFLUXDB_INIT_USERNAME, value: admin }
+            - { name: DOCKER_INFLUXDB_INIT_PASSWORD, value: admin12345 }
+            - { name: DOCKER_INFLUXDB_INIT_ORG, value: cei }
+            - { name: DOCKER_INFLUXDB_INIT_BUCKET, value: energy }
+            - { name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN, value: dev-token }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/influxdb2 }
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+  namespace: cloud
+spec:
+  selector: { app: influxdb }
+  ports: [{ port: 8086, targetPort: 8086 }]

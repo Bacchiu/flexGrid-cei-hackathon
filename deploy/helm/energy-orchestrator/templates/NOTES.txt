@@ -1,0 +1,12 @@
+Smart Enterprise Energy Orchestrator installato ✅  (release: {{ .Release.Name }})
+
+Namespace:  cloud = {{ .Values.namespaces.cloud }} | edge = {{ .Values.namespaces.edge }}
+Sedi edge:  {{ range .Values.sites }}{{ .name }} {{ end }}
+
+Accesso (NodePort su kind/minikube, oppure port-forward):
+  kubectl port-forward -n {{ .Values.namespaces.cloud }} svc/aggregator 8000:8000   # pannello Terna → http://localhost:8000
+  kubectl port-forward -n {{ .Values.namespaces.cloud }} svc/grafana   3000:3000     # Grafana → http://localhost:3000
+
+Scena demo:
+  curl -X POST localhost:8000/terna-event -H 'content-type: application/json' -d '{"reduction_kw":130,"duration_s":900}'
+  curl -X POST localhost:8000/terna-event/release

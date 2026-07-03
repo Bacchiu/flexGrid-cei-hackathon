@@ -1,0 +1,49 @@
+# Broker MQTT condiviso — namespace cloud.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-config
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+data:
+  mosquitto.conf: |
+    listener {{ .Values.mqtt.port }}
+    allow_anonymous true
+    persistence false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: mosquitto } }
+  template:
+    metadata: { labels: { app: mosquitto } }
+    spec:
+      containers:
+        - name: mosquitto
+          image: {{ .Values.mqtt.image }}
+          ports: [{ containerPort: {{ .Values.mqtt.port }} }]
+          volumeMounts:
+            - name: config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+      volumes:
+        - name: config
+          configMap: { name: mosquitto-config }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mqtt.serviceName }}
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+spec:
+  selector: { app: mosquitto }
+  ports: [{ port: {{ .Values.mqtt.port }}, targetPort: {{ .Values.mqtt.port }} }]

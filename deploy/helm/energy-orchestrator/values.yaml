@@ -1,0 +1,59 @@
+# Valori del chart energy-orchestrator.
+# In OpenSlice questi diventano gli override Helm dentro l'ArgoCD Application (_CR_SPEC).
+
+namespaces:
+  create: true          # il chart crea i namespace edge/cloud
+  cloud: cloud
+  edge: edge
+
+images:
+  edge:
+    repository: edge-controller
+    tag: dev
+    pullPolicy: IfNotPresent
+  aggregator:
+    repository: aggregator
+    tag: dev
+    pullPolicy: IfNotPresent
+
+mqtt:
+  image: eclipse-mosquitto:2
+  serviceName: mosquitto
+  port: 1883
+
+influx:
+  image: influxdb:2.7
+  token: dev-token
+  org: cei
+  bucket: energy
+  adminUser: admin
+  adminPassword: admin12345
+
+economics:
+  splitCompany: "0.80"
+  splitPlatform: "0.20"
+  defaultPriceEurMwh: "400"
+
+aggregator:
+  service:
+    type: NodePort
+    nodePort: 30800
+
+grafana:
+  image: grafana/grafana:11.3.0
+  adminPassword: admin
+  service:
+    type: NodePort
+    nodePort: 30300
+
+# Una sede = un elemento di questa lista (namespace edge).
+# "Aggiungere una sede" = aggiungere qui un item, oppure un nuovo service order OpenSlice.
+sites:
+  - name: azienda-demo
+    env: {}
+  # - name: sede-2
+  #   env:
+  #     EV_ACTIVE: "6"
+  #     HVAC_BASE_KW: "80"
+  #     CRITICAL_KW: "150"
+  #     PV_PEAK_KW: "150"

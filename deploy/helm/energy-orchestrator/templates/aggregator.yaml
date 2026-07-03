@@ -1,0 +1,46 @@
+# Aggregator / Dispatch Engine — namespace cloud.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregator
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: aggregator } }
+  template:
+    metadata: { labels: { app: aggregator } }
+    spec:
+      containers:
+        - name: aggregator
+          image: "{{ .Values.images.aggregator.repository }}:{{ .Values.images.aggregator.tag }}"
+          imagePullPolicy: {{ .Values.images.aggregator.pullPolicy }}
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: MQTT_HOST, value: {{ .Values.mqtt.serviceName | quote }} }
+            - { name: MQTT_PORT, value: {{ .Values.mqtt.port | quote }} }
+            - { name: INFLUX_URL, value: "http://influxdb.{{ .Values.namespaces.cloud }}:8086" }
+            - { name: INFLUX_TOKEN, value: {{ .Values.influx.token | quote }} }
+            - { name: INFLUX_ORG, value: {{ .Values.influx.org | quote }} }
+            - { name: INFLUX_BUCKET, value: {{ .Values.influx.bucket | quote }} }
+            - { name: SPLIT_COMPANY, value: {{ .Values.economics.splitCompany | quote }} }
+            - { name: SPLIT_PLATFORM, value: {{ .Values.economics.splitPlatform | quote }} }
+            - { name: DEFAULT_PRICE_EUR_MWH, value: {{ .Values.economics.defaultPriceEurMwh | quote }} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregator
+  namespace: {{ .Values.namespaces.cloud }}
+  labels:
+    {{- include "eo.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.aggregator.service.type }}
+  selector: { app: aggregator }
+  ports:
+    - port: 8000
+      targetPort: 8000
+      {{- if eq .Values.aggregator.service.type "NodePort" }}
+      nodePort: {{ .Values.aggregator.service.nodePort }}
+      {{- end }}

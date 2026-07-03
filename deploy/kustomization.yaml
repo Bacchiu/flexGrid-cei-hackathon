@@ -1,0 +1,30 @@
+# Deploy dell'intero stack su Kubernetes:  kubectl apply -k deploy
+# Le ConfigMap di Grafana sono generate dagli stessi file usati da docker-compose
+# (deploy/grafana/...) → dashboard/datasource con un'unica fonte di verità.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - k8s/00-namespaces.yaml
+  - k8s/10-mosquitto.yaml
+  - k8s/20-influxdb.yaml
+  - k8s/30-grafana.yaml
+  - k8s/40-aggregator.yaml
+  - k8s/50-edge.yaml
+
+configMapGenerator:
+  - name: grafana-datasources
+    namespace: cloud
+    files:
+      - grafana/provisioning/datasources/influxdb.yml
+  - name: grafana-dashboard-provider
+    namespace: cloud
+    files:
+      - grafana/provisioning/dashboards/dashboards.yml
+  - name: grafana-dashboards
+    namespace: cloud
+    files:
+      - grafana/dashboards/energy.json
+
+generatorOptions:
+  disableNameSuffixHash: true
