@@ -3,7 +3,7 @@
 **Track 2 [COP-PILOT] — OpenSlice & Distributed Energy Services** · Cloud-Edge-IoT Open-Source Hackathon (Cagliari).
 
 A B2B **Virtual Power Plant (VPP)** aggregator that modulates a company's flexible loads
-(**PV + EV chargers + HVAC**) in response to a **Terna** grid signal — without ever touching
+(**PV + EV chargers + HVAC**) in response to a **Terna** (Italy) grid signal — without ever touching
 critical loads — and splits the revenue **80/20**. **OpenSlice** orchestrates the services along
 the *computing continuum* (edge ↔ cloud). Everything is designed to **run on a single laptop**.
 
